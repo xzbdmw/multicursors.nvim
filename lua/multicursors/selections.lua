@@ -168,6 +168,20 @@ S.reduce_to_char = function(pos)
     end
 end
 
+--- Reduces the selections to a single char
+---@param pos ActionPosition
+S.reduce_to_char_except_main = function(pos)
+    local selections = utils.get_all_selections()
+    local main = utils.get_main_selection()
+
+    utils.move_cursor { main.row + 1, main.end_col }
+    -- utils.create_extmark(main, utils.namespace.Main)
+
+    for _, selection in pairs(selections) do
+        utils.create_extmark(selection, utils.namespace.Multi)
+    end
+end
+
 --- Moves the selections forward
 ---@param count integer
 S._move_forward = function(count)

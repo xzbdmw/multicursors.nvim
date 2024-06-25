@@ -32,7 +32,6 @@ M._on_insert_enter = function(config)
         end,
     })
 end
-
 M._on_insert_char_pre = function()
     api.nvim_create_autocmd({ 'InsertCharPre' }, {
         group = M._au_group,
@@ -104,7 +103,41 @@ M.insert_text = function(text)
     selections._move_forward(vim.fn.strcharlen(text))
 end
 
-local delete_char = function()
+M.delete_char_except_main = function()
+    local ns_id = api.nvim_create_namespace 'multicursors'
+    local callback = function(selection)
+        local col = selection.end_col - 1
+        if col < 0 then
+            return
+        end
+
+        api.nvim_win_set_cursor(0, { selection.end_row + 1, col })
+        vim.cmd 'normal! "_x'
+    end
+    local marks = utils.get_all_selections()
+    for _, selection in pairs(marks) do
+        local mark = api.nvim_buf_get_extmark_by_id(
+            0,
+            ns_id,
+            selection.id,
+            { details = true }
+        )
+
+        callback {
+            id = selection.id,
+            row = mark[1],
+            col = mark[2],
+            end_row = mark[3].end_row,
+            end_col = mark[3].end_col,
+        }
+    end
+
+    local main = utils.get_main_selection()
+
+    utils.move_cursor { main.row + 1, main.end_col }
+end
+
+M.delete_char = function()
     utils.call_on_selections(function(selection)
         local col = selection.end_col - 1
         if col < 0 then
@@ -115,12 +148,12 @@ local delete_char = function()
         vim.cmd 'normal! "_x'
     end)
 
-    selections.reduce_to_char(utils.position.before)
+    selections.reduce_to_char(utils.position.on)
 end
 
 M.BS_method = function()
     if M._inserted_text == '' then
-        delete_char()
+        M.delete_char()
     else
         --delete the text under the cursor cause we can't modify buffer content with expr mappings
         vim.cmd 'normal! "_X'

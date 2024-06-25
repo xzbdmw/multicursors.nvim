@@ -79,6 +79,7 @@ M.create_extmark = function(selection, namespace)
         hl_group = namespace,
         end_row = selection.end_row,
         end_col = selection.end_col,
+        undo_restore = false,
     })
 end
 
@@ -244,6 +245,30 @@ M.call_on_selections = function(callback)
     callback(main)
 end
 
+--- Calls a callback on all selections
+---@param callback fun(selection:Selection) function to call
+M.call_on_selections_exclude_main = function(callback)
+    local ns_id = api.nvim_create_namespace 'multicursors'
+    local marks = M.get_all_selections()
+    -- Get each mark again cause editing buffer might moves the other marks
+    for _, selection in pairs(marks) do
+        local mark = api.nvim_buf_get_extmark_by_id(
+            0,
+            ns_id,
+            selection.id,
+            { details = true }
+        )
+
+        callback {
+            id = selection.id,
+            row = mark[1],
+            col = mark[2],
+            end_row = mark[3].end_row,
+            end_col = mark[3].end_col,
+        }
+    end
+end
+
 -- Calls the callback on each selection
 -- Deletes and recreats each extmark
 ---@param callback function
@@ -295,7 +320,9 @@ M.move_cursor = function(pos, current)
 end
 
 M.exit = function()
+    vim.opt.timeoutlen = 500
     M.clear_selections()
+    vim.g.cmp_completion = true
     vim.b.MultiCursorMultiline = nil
     vim.b.MultiCursorPattern = nil
     vim.b.MultiCursorSubLayer = nil
