@@ -78,7 +78,7 @@ M.create_extmark = function(selection, namespace)
         hl_group = namespace,
         end_row = selection.end_row,
         end_col = selection.end_col,
-        undo_restore = false,
+        strict = false,
     })
 end
 

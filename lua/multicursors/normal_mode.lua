@@ -181,6 +181,10 @@ local paste = function(pos)
     local main = utils.get_main_selection()
 
     local content = vim.fn.getreg ''
+
+    content = content:gsub('%s*\r?\n%s*', ' '):gsub('^%s*', ''):gsub('%s*$', '')
+    vim.fn.setreg('"', content)
+
     local reg_len = #content
 
     utils.call_on_selections(function(selection)
@@ -242,13 +246,9 @@ M.replace = function()
         return
     end
 
-    local content ---@type string[]
-    -- split register contents by lines
-    if type(register) == 'string' then
-        content = vim.fn.split(register, '\n') ---@type string[]
-    else
-        content = register
-    end
+    local regex =
+        register:gsub('%s*\r?\n%s*', ' '):gsub('^%s*', ''):gsub('%s*$', '')
+    local content = { regex }
     local reg_len = #content[1]
 
     local marks = utils.get_all_selections()
