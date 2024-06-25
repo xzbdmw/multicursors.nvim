@@ -57,7 +57,6 @@ M.start = function()
     end
 
     if found then
-        vim.opt.timeoutlen = 1
         layers.normal_hydra:activate()
     end
 end

@@ -207,7 +207,10 @@ M.replace = function()
     end
 
     if #content ~= selection_count then
-        utils.update_selections_with(function(selection)
+        local marks = utils.get_all_selections()
+        local main = utils.get_main_selection()
+
+        utils.call_on_selections(function(selection)
             api.nvim_buf_set_text(
                 0,
                 selection.row,
@@ -217,6 +220,27 @@ M.replace = function()
                 content
             )
         end)
+
+        local new_pos
+
+        for _, selection in pairs(marks) do
+            new_pos = {
+                row = selection.row,
+                col = selection.col,
+                end_row = selection.end_row,
+                end_col = selection.col + #content[1],
+            }
+            utils.create_extmark(new_pos, utils.namespace.Multi)
+        end
+
+        new_pos = {
+            row = main.row,
+            col = main.col,
+            end_row = main.end_row,
+            end_col = main.col + #content[1],
+        }
+        utils.create_extmark(new_pos, utils.namespace.Main)
+
         return
     end
 
