@@ -177,6 +177,12 @@ end
 --- Puts the text inside unnamed register before or after selections
 ---@param pos ActionPosition
 local paste = function(pos)
+    local marks = utils.get_all_selections()
+    local main = utils.get_main_selection()
+
+    local content = vim.fn.getreg ''
+    local reg_len = #content
+
     utils.call_on_selections(function(selection)
         local position = { selection.row + 1, selection.col }
         if pos == utils.position.after then
@@ -186,6 +192,45 @@ local paste = function(pos)
         api.nvim_win_set_cursor(0, position)
         vim.cmd 'normal! P'
     end)
+
+    local new_pos
+
+    local same_row = {} ---@type table<Selection,integer>
+    for i = 1, #marks do
+        local selection = marks[i]
+        local count = 0
+        for j = 1, i do
+            if marks[j].row == selection.row then
+                count = count + 1
+            end
+        end
+        same_row[selection] = count - 1
+    end
+
+    for selection, count in pairs(same_row) do
+        new_pos = {
+            row = selection.row,
+            col = selection.col + count * reg_len,
+            end_row = selection.end_row,
+            end_col = selection.end_col + reg_len + count * reg_len,
+        }
+        utils.create_extmark(new_pos, utils.namespace.Multi)
+    end
+
+    local count = 0
+    for i = 1, #marks do
+        if marks[i].row == main.row then
+            count = count + 1
+        end
+    end
+
+    new_pos = {
+        row = main.row,
+        col = main.col + count * reg_len,
+        end_row = main.end_row,
+        end_col = main.end_col + reg_len * count + reg_len,
+    }
+    utils.create_extmark(new_pos, utils.namespace.Main)
 end
 
 -- Replaces each selections text with
