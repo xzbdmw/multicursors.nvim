@@ -237,7 +237,6 @@ end
 -- the corespondent line from the unnamed register
 M.replace = function()
     local register = vim.fn.getreg ''
-    local selection_count = #utils.get_all_selections() + 1
 
     if not register then
         return
@@ -250,57 +249,63 @@ M.replace = function()
     else
         content = register
     end
+    local reg_len = #content[1]
 
-    if #content ~= selection_count then
-        local marks = utils.get_all_selections()
-        local main = utils.get_main_selection()
+    local marks = utils.get_all_selections()
+    local main = utils.get_main_selection()
 
-        utils.call_on_selections(function(selection)
-            api.nvim_buf_set_text(
-                0,
-                selection.row,
-                selection.col,
-                selection.end_row,
-                selection.end_col,
-                content
-            )
-        end)
-
-        local new_pos
-
-        for _, selection in pairs(marks) do
-            new_pos = {
-                row = selection.row,
-                col = selection.col,
-                end_row = selection.end_row,
-                end_col = selection.col + #content[1],
-            }
-            utils.create_extmark(new_pos, utils.namespace.Multi)
-        end
-
-        new_pos = {
-            row = main.row,
-            col = main.col,
-            end_row = main.end_row,
-            end_col = main.col + #content[1],
-        }
-        utils.create_extmark(new_pos, utils.namespace.Main)
-
-        return
-    end
-
-    local index = 1
-    utils.update_selections_with(function(selection)
+    utils.call_on_selections(function(selection)
         api.nvim_buf_set_text(
             0,
             selection.row,
             selection.col,
             selection.end_row,
             selection.end_col,
-            { content[index] }
+            content
         )
-        index = index + 1
     end)
+
+    local origin_len = main.end_col - main.col
+    local extra_len = reg_len - origin_len
+
+    local new_pos
+
+    local same_row = {} ---@type table<Selection,integer>
+    for i = 1, #marks do
+        local selection = marks[i]
+        local count = 0
+        for j = 1, i - 1 do
+            if marks[j].row == selection.row then
+                count = count + 1
+            end
+        end
+        same_row[selection] = count
+    end
+
+    for selection, count in pairs(same_row) do
+        new_pos = {
+            row = selection.row,
+            col = selection.col + extra_len * count,
+            end_row = selection.end_row,
+            end_col = selection.col + extra_len * count + reg_len,
+        }
+        utils.create_extmark(new_pos, utils.namespace.Multi)
+    end
+
+    local count = 0
+    for i = 1, #marks do
+        if marks[i].row == main.row then
+            count = count + 1
+        end
+    end
+
+    new_pos = {
+        row = main.row,
+        col = main.col + extra_len * count,
+        end_row = main.end_row,
+        end_col = main.col + extra_len * count + reg_len,
+    }
+    utils.create_extmark(new_pos, utils.namespace.Main)
 end
 
 M.paste_after = function()

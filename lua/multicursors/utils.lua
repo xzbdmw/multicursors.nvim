@@ -73,15 +73,6 @@ M.create_extmark = function(selection, namespace)
     end
 
     selection = check_selection_bounds(selection)
-    local linecount = #vim.api.nvim_buf_get_lines(
-        0,
-        selection.row,
-        selection.row + 1,
-        false
-    )[1]
-    if selection.end_col >= linecount then
-        selection.end_col = linecount - 1
-    end
     return api.nvim_buf_set_extmark(0, ns, selection.row, selection.col, {
         id = selection.id,
         hl_group = namespace,
