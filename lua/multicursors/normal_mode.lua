@@ -213,7 +213,7 @@ M.replace = function()
                 selection.row,
                 selection.col,
                 selection.end_row,
-                selection.end_col,
+                selection.en_col,
                 content
             )
         end)
