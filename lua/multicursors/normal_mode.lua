@@ -192,9 +192,20 @@ local paste = function(pos)
         if pos == utils.position.after then
             position = { selection.end_row + 1, selection.end_col }
         end
-
         api.nvim_win_set_cursor(0, position)
-        vim.cmd 'normal! P'
+
+        local len = #api.nvim_buf_get_lines(
+            0,
+            selection.row,
+            selection.row + 1,
+            false
+        )[1]
+
+        if len == position[2] then
+            vim.cmd 'normal! p'
+        else
+            vim.cmd 'normal! P'
+        end
     end)
 
     local new_pos
